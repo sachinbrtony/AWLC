@@ -7,7 +7,7 @@
 
 #define SSD1306_128_32
 
-int TANKWAR,SUMPWAR,WL,dryflag=0;
+uint8_t TANKWAR,SUMPWAR,WL,dryflag=0;
 char* motor;
 char* mode;
 char* TWL;
@@ -57,7 +57,8 @@ int calculateADC()
 void Display_ADC()
 {
     char* ALM;
-    char* acvolt[10];
+    char* acvolt;
+    //char* acvolt[10];
     float ACvolt;
     
     setupADC();
@@ -65,17 +66,23 @@ void Display_ADC()
     __delay_ms(30);
     
     ACvolt=(ACvolt)*1.19;      //Calculating AC voltage from ADC reading
-    itoa(acvolt,ACvolt,10); //Converting integer voltage value to text
+    //itoa(acvolt,ACvolt,10); //Converting integer voltage value to text
     
     //ACvolt=ACvolt*3;
     
     if(ACvolt<=130)
     {
+        acvolt="LOW";
         dryflag=2;
     }
     else if(ACvolt>=310)
     {
+        acvolt="HIGH";
         dryflag=3;
+    }
+    else
+    {
+        acvolt="Normal";
     }
     __delay_ms(30);
     
@@ -100,7 +107,7 @@ void Display_ADC()
     
     SSD1306_GotoXY(16,1);
     oled_puts("AC IN", 1);
-    SSD1306_GotoXY(17,2);
+    SSD1306_GotoXY(16,2);
     oled_puts(acvolt, 1);
 
     SSD1306_GotoXY(1,4);
@@ -125,6 +132,10 @@ void Display_ADC()
     {
         ALM="No Water in Sump";
     }
+    else if(TANKWAR==1)
+    {
+        ALM="WireCut/Sensor  error";
+    }      
     else
     {
         ALM="I'm Working Good";
@@ -155,6 +166,7 @@ void Call_display()
     oled_puts("SOLUTIONS", 2);
     LEDchaser();
     LEDchaser();
+    
     __delay_ms(50);
 }
 
@@ -175,7 +187,6 @@ void Motor_On()
         RA1=1;
         motor=":OFF    ";
     }
-
     while(abc==1)
     {
         ReadSensor();
@@ -184,7 +195,7 @@ void Motor_On()
         Display_ADC();
         LEDchaser();
 
-        if(SUMPWAR==1 || TANKWAR==1 || WL== 100)
+        if(SUMPWAR==1 || TANKWAR==1 || WL==100)
         {
             abc=0;
             RC5 = 0;
@@ -233,7 +244,7 @@ int ReadSensor()
     else
     {
         
-        TWL="Err";
+        TWL="Err ";
         TANKWAR=1;
         WL=1;
     }
@@ -267,7 +278,7 @@ int ReadSensor()
     }
     else
     {
-        SWL="Err";
+        SWL="Err ";
         SUMPWAR=1;
     }
     
@@ -329,24 +340,21 @@ int main()
         WDTCON=0b00010111;
         __delay_ms(25);
 
-        if(RC5==1)
-        {
-            motor=":Running";
-        }
+        if(RC5 == 1)
+            motor = ":Running";
         else
-        {
-            motor=":OFF    ";
-        }
+            motor = ":OFF     ";
 
         __delay_ms(25);
-        if(RC1==0)
+        
+        if(RC0==0)
         {
             mode="Manual";
             motor=":Running";
             LEDchaser();
             Display_ADC();
         }
-        else if (RC0==0)
+        else if(RC1==0)
         {
             mode="Auto  ";
         }
@@ -357,13 +365,14 @@ int main()
         }
 
         Display_ADC();
-        //ReadSensor();
+        ReadSensor();
         int wl=ReadSensor();
         switch(wl)
         {
         case 100:
             TWL="Full";
-            //motor=":OFF      ";
+            RC5=0;
+            //motor=":OFF     ";           
             Display_ADC();
             __delay_ms(40);
             break;
@@ -379,7 +388,7 @@ int main()
             //{
             //    break;
             //}
-            Motor_On();
+            //Motor_On();
             __delay_ms(40);
             break;
         case 25:
@@ -394,13 +403,11 @@ int main()
             __delay_ms(40);
             break;
         case 1:
-            TWL="Err";
+            TWL="Err  ";
             Display_ADC();
             TANKWAR=1;
             __delay_ms(40);
             break;            
-                
-
         default:
 
             break;
